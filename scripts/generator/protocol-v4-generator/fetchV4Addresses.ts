@@ -1,7 +1,7 @@
-import {readFileSync} from 'fs';
-import {resolve} from 'path';
-import {Hex} from 'viem';
-import {PoolV4Config, Addresses} from '../../configs/types';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { Hex } from 'viem';
+import { PoolV4Config, Addresses } from '../../configs/types';
 
 interface DeployJson {
   accessManager: Hex;
@@ -19,40 +19,59 @@ interface DeployJson {
   treasurySpoke: Hex;
 }
 
+// TokenizationSpoke deploy: { HUB_NAME: { ASSET_SYMBOL: address } }
+type TokenizationDeployJson = Record<string, Record<string, Hex>>;
+
 export function fetchV4Addresses(poolConfig: PoolV4Config): Addresses {
   const raw = readFileSync(resolve(process.cwd(), poolConfig.deployJson), 'utf-8');
   const deploy: DeployJson = JSON.parse(raw);
 
-  const addresses: Addresses = {
-    ACCESS_MANAGER: deploy.accessManager,
-    CONFIG_POSITION_MANAGER: deploy.configPositionManager,
-    GIVER_POSITION_MANAGER: deploy.giverPositionManager,
-    HUB_CONFIGURATOR: deploy.hubConfigurator,
-    NATIVE_TOKEN_GATEWAY: deploy.nativeTokenGateway,
-    SIGNATURE_GATEWAY: deploy.signatureGateway,
-    SPOKE_CONFIGURATOR: deploy.spokeConfigurator,
-    TAKER_POSITION_MANAGER: deploy.takerPositionManager,
-    TREASURY_SPOKE: deploy.treasurySpoke,
-  };
+  // Order matches devnet.json structure
+  const addresses: Addresses = {};
 
-  // Flatten hub entries: hub.CORE_HUB -> CORE_HUB
+  addresses.ACCESS_MANAGER = deploy.accessManager;
+  addresses.CONFIG_POSITION_MANAGER = deploy.configPositionManager;
+  addresses.GIVER_POSITION_MANAGER = deploy.giverPositionManager;
+
+  // Hubs
   for (const [key, value] of Object.entries(deploy.hub)) {
     addresses[key] = value;
   }
 
-  // Flatten spoke entries: spoke.MAIN_SPOKE -> MAIN_SPOKE
-  for (const [key, value] of Object.entries(deploy.spoke)) {
-    addresses[key] = value;
+  addresses.HUB_CONFIGURATOR = deploy.hubConfigurator;
+
+  // IR strategies (per hub)
+  for (const [key, value] of Object.entries(deploy.irStrategy)) {
+    addresses[`${key}_IR_STRATEGY`] = value;
   }
 
-  // Flatten oracle entries: oracle.CORE_HUB -> CORE_HUB_ORACLE
+  addresses.NATIVE_TOKEN_GATEWAY = deploy.nativeTokenGateway;
+
+  // Oracles (per spoke)
   for (const [key, value] of Object.entries(deploy.oracle)) {
     addresses[`${key}_ORACLE`] = value;
   }
 
-  // Flatten irStrategy entries: irStrategy.CORE_HUB -> CORE_HUB_IR_STRATEGY
-  for (const [key, value] of Object.entries(deploy.irStrategy)) {
-    addresses[`${key}_IR_STRATEGY`] = value;
+  addresses.SIGNATURE_GATEWAY = deploy.signatureGateway;
+
+  // Spokes
+  for (const [key, value] of Object.entries(deploy.spoke)) {
+    addresses[key] = value;
+  }
+
+  addresses.SPOKE_CONFIGURATOR = deploy.spokeConfigurator;
+  addresses.TAKER_POSITION_MANAGER = deploy.takerPositionManager;
+  addresses.TREASURY_SPOKE = deploy.treasurySpoke;
+
+  // Tokenization spokes (optional separate deploy file)
+  if (poolConfig.tokenizationDeployJson) {
+    const tokenRaw = readFileSync(resolve(process.cwd(), poolConfig.tokenizationDeployJson), 'utf-8');
+    const tokenDeploy: TokenizationDeployJson = JSON.parse(tokenRaw);
+    for (const [hubName, assets] of Object.entries(tokenDeploy)) {
+      for (const [asset, addr] of Object.entries(assets)) {
+        addresses[`TOKENIZATION_${hubName}_${asset}`] = addr;
+      }
+    }
   }
 
   return addresses;

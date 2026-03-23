@@ -163,5 +163,6 @@ export interface PoolV4Config {
   name: string;
   chainId: number;
   deployJson: string;
+  tokenizationDeployJson?: string;
   additionalAddresses?: Record<string, Hex>;
 }

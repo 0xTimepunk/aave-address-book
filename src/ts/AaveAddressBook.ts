@@ -59,6 +59,7 @@ export * as AaveV3InkWhitelabel from './AaveV3InkWhitelabel';
 export * as AaveV3Plasma from './AaveV3Plasma';
 export * as AaveV3MegaEth from './AaveV3MegaEth';
 export * as AaveV3XLayer from './AaveV3XLayer';
+export * as AaveV4EthereumDevnet from './AaveV4EthereumDevnet';
 export * as MiscArbitrum from './MiscArbitrum';
 export * as MiscArbitrumSepolia from './MiscArbitrumSepolia';
 export * as MiscAvalanche from './MiscAvalanche';
